@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SEWLY — Stitch Your Story</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&family=Bodoni+Moda:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#0a0a0c;
+  --surface:#141416;
+  --surface2:#1c1c1f;
+  --border:#272729;
+  --rose:#f0b8be;
+  --rose-dark:#d08088;
+  --rose-dim:rgba(240,184,190,0.10);
+  --gold:#e0bc7a;
+  --gold-dim:rgba(224,188,122,0.10);
+  --text:#f7f2ee;
+  --text-muted:#8a8490;
+  --text-dim:#4a4650;
+  --green:#4ade80;
+  --r:14px;
+  --ceil-light: rgba(255,240,180,0.18);
+  --ceil-light2: rgba(255,220,120,0.10);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--rose-dark);border-radius:2px;}
+
+/* ══════════════════════════════════════════
+   SHOP BACKGROUND — Realistic interior
+══════════════════════════════════════════ */
+.shop-bg{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  /* Floor perspective lines */
+  background:
+    /* Ceiling warm gradient */
+    radial-gradient(ellipse 120% 30% at 50% 0%, rgba(255,230,160,0.09) 0%, transparent 70%),
+    /* Wall texture */
+    linear-gradient(180deg,
+      #0d0c0e 0%,
+      #111013 30%,
+      #0e0d10 60%,
+      #0c0b0e 100%
+    );
+}
+/* Perspective floor lines */
+.shop-bg::before{
+  content:'';position:absolute;inset:0;
+  background:
+    repeating-linear-gradient(90deg,rgba(255,230,160,0.015) 0px, transparent 1px, transparent 80px, rgba(255,230,160,0.015) 81px),
+    repeating-linear-gradient(0deg,rgba(255,230,160,0.01) 0px, transparent 1px, transparent 80px, rgba(255,230,160,0.01) 81px);
+  transform-origin:bottom center;
+  opacity:0.6;
+}
+/* Wooden floor suggestion at bottom */
+.shop-bg::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:22vh;
+  background:linear-gradient(to top,
+    rgba(80,55,30,0.08) 0%,
+    rgba(60,40,20,0.04) 60%,
+    transparent 100%
+  );
+  border-top:1px solid rgba(255,200,100,0.06);
+}
+
+/* ══════════════════════════════════════════
+   CEILING LIGHT RIGS
+══════════════════════════════════════════ */
+.ceiling-lights{
+  position:fixed;top:0;left:0;right:0;z-index:1;pointer-events:none;
+  display:flex;justify-content:space-evenly;align-items:flex-start;
+  padding:0 8%;
+}
+.light-rig{
+  display:flex;flex-direction:column;align-items:center;position:relative;
+}
+.light-wire{
+  width:2px;height:clamp(40px,6vh,80px);
+  background:linear-gradient(to bottom,rgba(180,160,120,0.5),rgba(120,100,70,0.3));
+}
+.light-body{
+  width:28px;height:14px;
+  background:linear-gradient(180deg,#2a2520,#1a1512);
+  border-radius:4px 4px 8px 8px;
+  border:1px solid rgba(200,160,80,0.2);
+  position:relative;overflow:visible;
+}
+.light-bulb{
+  position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
+  width:14px;height:10px;border-radius:50%;
+  background:radial-gradient(circle,#ffe8a0,#ffc840);
+  box-shadow:
+    0 0 8px 4px rgba(255,210,80,0.7),
+    0 0 24px 10px rgba(255,200,60,0.3),
+    0 0 60px 24px rgba(255,190,40,0.12);
+  animation:bulb-flicker 8s ease-in-out infinite;
+}
+.light-cone{
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  width:0;height:0;
+  border-left:60px solid transparent;
+  border-right:60px solid transparent;
+  border-top:0px solid transparent;
+  /* Downward cone */
+  clip-path:polygon(50% 0%,0% 100%,100% 100%);
+  width:140px;height:clamp(120px,18vh,220px);
+  background:linear-gradient(to bottom,
+    rgba(255,230,140,0.08) 0%,
+    rgba(255,220,100,0.03) 60%,
+    transparent 100%
+  );
+  animation:cone-pulse 8s ease-in-out infinite;
+}
+.light-cone2{
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  width:80px;height:clamp(80px,12vh,150px);
+  background:radial-gradient(ellipse at top,rgba(255,240,160,0.10) 0%,transparent 80%);
+  animation:cone-pulse 8s ease-in-out infinite;
+}
+@keyframes bulb-flicker{
+  0%,95%,100%{opacity:1;box-shadow:0 0 8px 4px rgba(255,210,80,0.7),0 0 24px 10px rgba(255,200,60,0.3),0 0 60px 24px rgba(255,190,40,0.12);}
+  96%{opacity:0.7;box-shadow:0 0 4px 2px rgba(255,210,80,0.4),0 0 10px 4px rgba(255,200,60,0.15),0 0 30px 10px rgba(255,190,40,0.06);}
+  97%{opacity:1;box-shadow:0 0 8px 4px rgba(255,210,80,0.7),0 0 24px 10px rgba(255,200,60,0.3),0 0 60px 24px rgba(255,190,40,0.12);}
+}
+@keyframes cone-pulse{
+  0%,100%{opacity:1;}
+  96%{opacity:0.5;}
+  97%{opacity:1;}
+}
+
+/* ══════════════════════════════════════════
+   AC UNIT — Top right corner
+══════════════════════════════════════════ */
+.ac-unit{
+  position:fixed;top:72px;right:2.5%;z-index:5;pointer-events:none;
+}
+.ac-body{
+  width:120px;height:40px;
+  background:linear-gradient(180deg,#e8e4dc,#d4cfc6);
+  border-radius:8px;
+  border-bottom:3px solid #b8b2a8;
+  box-shadow:0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;gap:2px;padding:0 6px;
+}
+.ac-vent-line{
+  width:1px;height:22px;
+  background:linear-gradient(to bottom,#a0998e,#c8c2b8);
+  border-radius:1px;
+}
+.ac-light{
+  position:absolute;top:5px;right:8px;
+  width:5px;height:5px;border-radius:50%;
+  background:#22dd88;
+  box-shadow:0 0 4px 2px rgba(34,220,136,0.6);
+  animation:ac-blink 3s ease-in-out infinite;
+}
+@keyframes ac-blink{0%,45%,55%,100%{opacity:1;}50%{opacity:0;}}
+
+/* Cold air flow particles */
+.ac-airflow{
+  position:absolute;bottom:-8px;left:0;right:0;
+  height:80px;
+  overflow:visible;
+  pointer-events:none;
+}
+.air-particle{
+  position:absolute;
+  width:40px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(160,210,255,0.25),transparent);
+  border-radius:1px;
+  animation:air-flow 2s ease-in-out infinite;
+}
+.air-particle:nth-child(1){left:10%;top:0;animation-delay:0s;width:50px;}
+.air-particle:nth-child(2){left:30%;top:8px;animation-delay:0.3s;width:35px;}
+.air-particle:nth-child(3){left:55%;top:4px;animation-delay:0.6s;width:45px;}
+.air-particle:nth-child(4){left:20%;top:16px;animation-delay:0.9s;width:30px;opacity:0.6;}
+.air-particle:nth-child(5){left:65%;top:20px;animation-delay:1.2s;width:40px;opacity:0.5;}
+.air-particle:nth-child(6){left:40%;top:28px;animation-delay:1.5s;width:28px;opacity:0.35;}
+.air-particle:nth-child(7){left:5%;top:32px;animation-delay:1.8s;width:36px;opacity:0.3;}
+.air-particle:nth-child(8){left:75%;top:36px;animation-delay:0.4s;width:32px;opacity:0.25;}
+@keyframes air-flow{
+  0%{transform:translateY(0) scaleX(0.3);opacity:0;}
+  20%{opacity:1;}
+  100%{transform:translateY(70px) scaleX(1.2);opacity:0;}
+}
+
+/* AC fan blade on left side */
+.ac-fan{
+  position:absolute;left:-42px;top:0;
+  width:42px;height:40px;
+  background:linear-gradient(180deg,#ddd9d0,#c8c4ba);
+  border-radius:6px 0 0 6px;
+  border-bottom:3px solid #aea8a0;
+  box-shadow:0 4px 12px rgba(0,0,0,0.5);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.fan-blade-wrap{
+  width:28px;height:28px;
+  animation:fan-spin 0.5s linear infinite;
+}
+@keyframes fan-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.fan-blade{
+  position:absolute;width:12px;height:4px;
+  background:rgba(100,95,88,0.5);
+  border-radius:2px;
+  top:50%;left:50%;
+  transform-origin:-2px 50%;
+}
+.fan-blade:nth-child(1){transform:rotate(0deg) translateY(-50%);}
+.fan-blade:nth-child(2){transform:rotate(60deg) translateY(-50%);}
+.fan-blade:nth-child(3){transform:rotate(120deg) translateY(-50%);}
+.fan-blade:nth-child(4){transform:rotate(180deg) translateY(-50%);}
+.fan-blade:nth-child(5){transform:rotate(240deg) translateY(-50%);}
+.fan-blade:nth-child(6){transform:rotate(300deg) translateY(-50%);}
+
+/* AC temp display */
+.ac-temp{
+  position:absolute;left:-100px;top:10px;
+  font-family:'DM Sans',sans-serif;
+  font-size:10px;font-weight:700;letter-spacing:1px;
+  color:#22dd88;
+  text-shadow:0 0 6px rgba(34,220,136,0.5);
+}
+
+/* ── CANVAS BG ── */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.35;}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 5%;
+  background:rgba(10,10,12,0.92);backdrop-filter:blur(24px);
+  border-bottom:1px solid rgba(240,184,190,0.08);}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:68px;}
+.logo{font-family:'Bodoni Moda',serif;font-size:1.9rem;font-weight:700;letter-spacing:4px;color:var(--rose);cursor:pointer;}
+.logo span{color:var(--gold);}
+.nav-links{display:flex;gap:2.2rem;list-style:none;}
+.nav-links a{color:var(--text-muted);text-decoration:none;font-size:.82rem;font-weight:500;letter-spacing:.8px;text-transform:uppercase;transition:color .2s;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.nav-links a:hover{color:var(--rose);}
+.nav-actions{display:flex;gap:.8rem;align-items:center;}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:.5rem;padding:.6rem 1.4rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;border:none;transition:all .25s;letter-spacing:.3px;}
+.btn-rose{background:var(--rose);color:#0a0a0c;}
+.btn-rose:hover{background:var(--rose-dark);transform:translateY(-2px);box-shadow:0 8px 24px rgba(240,184,190,0.25);}
+.btn-outline{background:transparent;border:1.5px solid rgba(240,184,190,0.3);color:var(--rose);}
+.btn-outline:hover{border-color:var(--rose);background:var(--rose-dim);}
+.btn-gold{background:var(--gold);color:#0a0a0c;}
+.btn-gold:hover{background:#f0cc8a;transform:translateY(-2px);box-shadow:0 8px 24px rgba(224,188,122,0.25);}
+.btn-lg{padding:.85rem 2rem;font-size:.95rem;}
+.btn-sm{padding:.4rem 1rem;font-size:.78rem;}
+
+/* ── PAGES ── */
+.page{display:none;min-height:100vh;padding-top:68px;position:relative;z-index:2;}
+.page.active{display:block;}
+
+/* ══════════════════════════════════════════
+   HERO
+══════════════════════════════════════════ */
+.hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:0 8%;gap:4rem;position:relative;}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 30% 50%,rgba(240,184,190,0.05) 0%,transparent 70%);}
+
+.hero-left{z-index:2;}
+.hero-badge{display:inline-flex;align-items:center;gap:.5rem;padding:.35rem 1rem;background:var(--rose-dim);border:1px solid rgba(240,184,190,0.2);border-radius:100px;font-size:.72rem;font-weight:600;color:var(--rose);letter-spacing:.8px;text-transform:uppercase;margin-bottom:1.8rem;animation:fadeUp .6s ease both;font-family:'DM Sans',sans-serif;}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(3rem,6vw,5.5rem);font-weight:900;line-height:1.05;margin-bottom:1.4rem;animation:fadeUp .6s .1s ease both;}
+.hero h1 em{font-style:italic;color:var(--rose);}
+.hero h1 span{color:var(--gold);}
+.hero-sub{font-size:1rem;color:var(--text-muted);line-height:1.85;max-width:440px;margin-bottom:2rem;animation:fadeUp .6s .2s ease both;font-family:'DM Sans',sans-serif;}
+.hero-tags{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:2.2rem;animation:fadeUp .6s .3s ease both;}
+.htag{padding:.3rem .85rem;background:var(--surface);border:1px solid var(--border);border-radius:100px;font-size:.73rem;color:var(--text-muted);font-weight:500;font-family:'DM Sans',sans-serif;}
+.hero-ctas{display:flex;gap:1rem;flex-wrap:wrap;animation:fadeUp .6s .4s ease both;}
+
+/* HERO RIGHT — 3D Dress Form */
+.hero-right{position:relative;height:580px;display:flex;align-items:center;justify-content:center;z-index:2;}
+.dress-scene{position:relative;width:320px;height:520px;}
+.dress-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:300px;height:400px;background:radial-gradient(ellipse,rgba(240,184,190,0.12) 0%,transparent 70%);border-radius:50%;animation:pulse-glow 4s ease-in-out infinite;}
+.dress-svg{position:absolute;top:0;left:50%;transform:translateX(-50%);animation:dress-float 5s ease-in-out infinite;}
+.swatch{position:absolute;border-radius:12px;animation:swatch-float 6s ease-in-out infinite;}
+.sw1{width:80px;height:80px;background:linear-gradient(135deg,#f0b8be,#d08088);top:5%;left:-10%;animation-delay:0s;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.sw2{width:65px;height:65px;background:linear-gradient(135deg,#e0bc7a,#b0884a);top:15%;right:-8%;animation-delay:1s;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.sw3{width:55px;height:55px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);bottom:25%;left:-12%;animation-delay:2s;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.sw4{width:70px;height:70px;background:linear-gradient(135deg,#10b981,#065f46);bottom:20%;right:-5%;animation-delay:1.5s;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.sw5{width:50px;height:50px;background:linear-gradient(135deg,#f59e0b,#b45309);top:50%;left:-15%;animation-delay:3s;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.thread{position:absolute;top:10%;right:10%;width:2px;height:120px;background:linear-gradient(to bottom,var(--rose),transparent);border-radius:1px;animation:thread-sway 3s ease-in-out infinite;}
+.needle{position:absolute;top:8%;right:9.5%;width:16px;height:4px;background:var(--gold);border-radius:2px;animation:thread-sway 3s ease-in-out infinite;}
+
+/* Stats bar */
+.hero-stats{display:flex;gap:2.5rem;margin-top:2.5rem;padding-top:2rem;border-top:1px solid var(--border);animation:fadeUp .6s .5s ease both;}
+.hstat{text-align:center;}
+.hstat-num{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--rose);}
+.hstat-label{font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-top:.1rem;font-family:'DM Sans',sans-serif;}
+
+@keyframes dress-float{0%,100%{transform:translateX(-50%) translateY(0) rotate(-1deg);}50%{transform:translateX(-50%) translateY(-18px) rotate(1deg);}}
+@keyframes swatch-float{0%,100%{transform:translateY(0) rotate(-3deg);}50%{transform:translateY(-14px) rotate(3deg);}}
+@keyframes pulse-glow{0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(1);}50%{opacity:1;transform:translate(-50%,-50%) scale(1.1);}}
+@keyframes thread-sway{0%,100%{transform:rotate(-5deg);}50%{transform:rotate(5deg);}}
+
+/* ══════════════════════════════════════════
+   SERVICES
+══════════════════════════════════════════ */
+.services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:3rem;}
+.service-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2rem;cursor:pointer;transition:all .3s;position:relative;overflow:hidden;}
+.service-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--rose-dim),transparent);opacity:0;transition:opacity .3s;}
+.service-card:hover{border-color:rgba(240,184,190,0.3);transform:translateY(-6px);box-shadow:0 20px 48px rgba(0,0,0,0.5);}
+.service-card:hover::before{opacity:1;}
+.sc-icon{font-size:2.5rem;margin-bottom:1.2rem;}
+.sc-title{font-family:'Playfair Display',serif;font-size:1.35rem;font-weight:600;margin-bottom:.6rem;color:var(--text);}
+.sc-desc{font-size:.83rem;color:var(--text-muted);line-height:1.75;font-family:'DM Sans',sans-serif;}
+.sc-tag{display:inline-block;margin-top:1rem;padding:.25rem .7rem;background:var(--rose-dim);border-radius:100px;font-size:.7rem;color:var(--rose);font-weight:600;font-family:'DM Sans',sans-serif;}
+
+/* ══════════════════════════════════════════
+   SECTION HEADER
+══════════════════════════════════════════ */
+section{padding:5rem 8%;}
+.section-tag{display:inline-block;padding:.3rem .9rem;background:var(--rose-dim);border:1px solid rgba(240,184,190,0.2);border-radius:100px;font-size:.7rem;color:var(--rose);font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:1rem;font-family:'DM Sans',sans-serif;}
+.section-title{font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:700;line-height:1.15;margin-bottom:.8rem;}
+.section-sub{font-size:.93rem;color:var(--text-muted);max-width:520px;line-height:1.8;font-family:'DM Sans',sans-serif;}
+
+/* ══════════════════════════════════════════
+   SHOP — PRODUCT CARDS
+══════════════════════════════════════════ */
+.shop-filters{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:2.5rem;}
+.filter-btn{padding:.4rem 1.1rem;background:var(--surface);border:1px solid var(--border);border-radius:100px;font-size:.76rem;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.filter-btn.active,.filter-btn:hover{background:var(--rose);color:#0a0a0c;border-color:var(--rose);}
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.5rem;}
+.product-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;cursor:pointer;transition:all .3s;}
+.product-card:hover{transform:translateY(-6px);border-color:rgba(240,184,190,0.3);box-shadow:0 20px 48px rgba(0,0,0,0.5);}
+.product-img{height:260px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:4rem;position:relative;overflow:hidden;}
+.product-img img{width:100%;height:100%;object-fit:cover;}
+.product-badge{position:absolute;top:.8rem;left:.8rem;padding:.2rem .6rem;background:var(--rose);color:#0a0a0c;border-radius:100px;font-size:.63rem;font-weight:700;letter-spacing:.3px;font-family:'DM Sans',sans-serif;}
+.product-wish{position:absolute;top:.8rem;right:.8rem;background:rgba(10,10,12,0.7);border:none;color:var(--text);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.product-wish:hover{background:var(--rose);color:#0a0a0c;}
+.product-body{padding:1.2rem;}
+.product-name{font-weight:600;font-size:.93rem;margin-bottom:.3rem;font-family:'DM Sans',sans-serif;}
+.product-cat{font-size:.73rem;color:var(--text-muted);margin-bottom:.7rem;font-family:'DM Sans',sans-serif;}
+.product-footer{display:flex;align-items:center;justify-content:space-between;}
+.product-price{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--rose);}
+.add-cart-btn{background:var(--rose-dim);border:1px solid rgba(240,184,190,0.25);color:var(--rose);padding:.35rem .8rem;border-radius:100px;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.add-cart-btn:hover{background:var(--rose);color:#0a0a0c;}
+
+/* Cart badge */
+.cart-badge{position:absolute;top:-4px;right:-4px;background:var(--rose);color:#0a0a0c;width:16px;height:16px;border-radius:50%;font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+
+/* ══════════════════════════════════════════
+   TAILOR / CUSTOM ORDER
+══════════════════════════════════════════ */
+.tailor-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start;}
+.size-form{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2rem;}
+.size-form h3{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:600;margin-bottom:1.5rem;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+.form-group{display:flex;flex-direction:column;gap:.4rem;}
+.form-group label{font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-family:'DM Sans',sans-serif;}
+.form-group input,.form-group select,.form-group textarea{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.65rem 1rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;transition:border-color .2s;outline:none;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--rose);}
+.form-group select option{background:var(--surface2);}
+.form-group textarea{resize:vertical;min-height:90px;}
+.full{grid-column:1/-1;}
+.submit-btn{width:100%;padding:1rem;background:linear-gradient(135deg,var(--rose),var(--rose-dark));color:#0a0a0c;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-top:1rem;transition:all .25s;letter-spacing:.3px;}
+.submit-btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(240,184,190,0.3);}
+.tailor-info{display:flex;flex-direction:column;gap:1.5rem;}
+.tinfo-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.5rem;display:flex;gap:1rem;align-items:flex-start;}
+.tinfo-icon{font-size:1.8rem;flex-shrink:0;}
+.tinfo-title{font-weight:600;margin-bottom:.3rem;font-family:'DM Sans',sans-serif;}
+.tinfo-desc{font-size:.82rem;color:var(--text-muted);line-height:1.65;font-family:'DM Sans',sans-serif;}
+.measure-guide{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.5rem;margin-top:1.5rem;}
+.measure-guide h4{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:1rem;}
+.measure-item{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.8rem;}
+.measure-item:last-child{border-bottom:none;}
+.measure-item span:first-child{color:var(--text-muted);}
+.measure-item span:last-child{color:var(--rose);font-weight:600;}
+
+/* ══════════════════════════════════════════
+   DONATE
+══════════════════════════════════════════ */
+.donate-hero{background:linear-gradient(135deg,var(--surface),var(--surface2));border:1px solid var(--border);border-radius:24px;padding:3rem;text-align:center;margin-bottom:3rem;position:relative;overflow:hidden;}
+.donate-hero::before{content:'♻️';position:absolute;font-size:12rem;opacity:.04;top:-2rem;right:-2rem;}
+.donate-hero h2{font-family:'Playfair Display',serif;font-size:2.5rem;margin-bottom:1rem;}
+.donate-hero p{color:var(--text-muted);max-width:520px;margin:0 auto 2rem;line-height:1.8;font-family:'DM Sans',sans-serif;}
+.waste-stats{display:flex;justify-content:center;gap:3rem;margin-top:2rem;flex-wrap:wrap;}
+.wstat{text-align:center;}
+.wstat-num{font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--gold);}
+.wstat-label{font-size:.73rem;color:var(--text-muted);margin-top:.2rem;font-family:'DM Sans',sans-serif;}
+.donate-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start;}
+.donate-form{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2rem;}
+.donate-form h3{font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:1.5rem;}
+.cloth-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1.2rem;}
+.cloth-type-btn{padding:.6rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:all .2s;font-size:.73rem;font-weight:600;font-family:'DM Sans',sans-serif;}
+.cloth-type-btn.selected{background:var(--rose-dim);border-color:rgba(240,184,190,0.4);color:var(--rose);}
+.cloth-type-btn:hover{border-color:rgba(240,184,190,0.3);}
+.impact-cards{display:flex;flex-direction:column;gap:1.2rem;}
+.impact-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.5rem;display:flex;gap:1.2rem;align-items:center;}
+.impact-card .ic-icon{font-size:2rem;flex-shrink:0;}
+.impact-card .ic-title{font-weight:600;margin-bottom:.2rem;font-size:.93rem;font-family:'DM Sans',sans-serif;}
+.impact-card .ic-desc{font-size:.78rem;color:var(--text-muted);line-height:1.55;font-family:'DM Sans',sans-serif;}
+.donate-progress{background:var(--surface);border:1px solid rgba(224,188,122,0.2);border-radius:16px;padding:1.5rem;margin-top:1.2rem;}
+.dp-title{font-size:.76rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1rem;font-family:'DM Sans',sans-serif;}
+.dp-bar-wrap{background:var(--surface2);border-radius:100px;height:8px;margin-bottom:.5rem;overflow:hidden;}
+.dp-bar{height:100%;background:linear-gradient(90deg,var(--gold),var(--rose));border-radius:100px;transition:width 1s ease;}
+.dp-label{display:flex;justify-content:space-between;font-size:.7rem;color:var(--text-dim);font-family:'DM Sans',sans-serif;}
+
+/* ══════════════════════════════════════════
+   MODAL
+══════════════════════════════════════════ */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid rgba(240,184,190,0.15);border-radius:24px;width:90%;max-width:440px;padding:2.5rem;position:relative;animation:fadeUp .3s ease;box-shadow:0 40px 100px rgba(0,0,0,0.7);}
+.modal-close{position:absolute;top:1rem;right:1rem;background:var(--surface2);border:none;color:var(--text-muted);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.modal-close:hover{color:var(--text);}
+.modal h2{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;margin-bottom:.3rem;}
+.modal p{color:var(--text-muted);font-size:.83rem;margin-bottom:1.8rem;font-family:'DM Sans',sans-serif;}
+.mform{display:flex;flex-direction:column;gap:.9rem;}
+.mform input{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:.75rem 1.1rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;transition:border-color .2s;width:100%;}
+.mform input:focus{border-color:var(--rose);}
+.mform-btn{width:100%;padding:.85rem;background:linear-gradient(135deg,var(--rose),var(--rose-dark));color:#0a0a0c;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .25s;margin-top:.4rem;}
+.mform-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(240,184,190,0.3);}
+.divider{text-align:center;color:var(--text-dim);font-size:.78rem;margin:.2rem 0;position:relative;font-family:'DM Sans',sans-serif;}
+.divider::before,.divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--border);}
+.divider::before{left:0;}
+.divider::after{right:0;}
+.mswitch{text-align:center;font-size:.8rem;color:var(--text-muted);margin-top:1.2rem;font-family:'DM Sans',sans-serif;}
+.mswitch a{color:var(--rose);cursor:pointer;font-weight:600;}
+
+/* ══════════════════════════════════════════
+   CART SIDEBAR
+══════════════════════════════════════════ */
+.cart-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;backdrop-filter:blur(4px);}
+.cart-overlay.open{display:block;}
+.cart-sidebar{position:fixed;top:0;right:-420px;width:420px;height:100vh;background:var(--surface);border-left:1px solid var(--border);z-index:201;transition:right .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;}
+.cart-sidebar.open{right:0;}
+.cart-header{padding:1.5rem 1.5rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.cart-header h3{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;}
+.cart-close{background:var(--surface2);border:none;color:var(--text-muted);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;}
+.cart-items{flex:1;overflow-y:auto;padding:1rem 1.5rem;}
+.cart-item{display:flex;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--border);align-items:center;}
+.cart-item-img{width:56px;height:56px;background:var(--surface2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;overflow:hidden;}
+.cart-item-img img{width:100%;height:100%;object-fit:cover;}
+.cart-item-name{font-size:.88rem;font-weight:600;margin-bottom:.2rem;font-family:'DM Sans',sans-serif;}
+.cart-item-price{font-size:.83rem;color:var(--rose);font-weight:600;}
+.cart-item-qty{display:flex;align-items:center;gap:.5rem;margin-top:.4rem;}
+.qty-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);width:24px;height:24px;border-radius:6px;cursor:pointer;font-size:.83rem;display:flex;align-items:center;justify-content:center;}
+.qty-btn:hover{border-color:var(--rose);color:var(--rose);}
+.cart-remove{margin-left:auto;background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:.78rem;transition:color .2s;}
+.cart-remove:hover{color:var(--rose);}
+.cart-footer{padding:1.5rem;border-top:1px solid var(--border);}
+.cart-total{display:flex;justify-content:space-between;font-size:1rem;font-weight:700;margin-bottom:1.2rem;font-family:'DM Sans',sans-serif;}
+.cart-total span:last-child{color:var(--rose);font-family:'Playfair Display',serif;font-size:1.3rem;}
+.cart-empty{text-align:center;padding:3rem 1rem;color:var(--text-muted);font-family:'DM Sans',sans-serif;}
+.cart-empty-icon{font-size:3rem;margin-bottom:1rem;}
+
+/* ══════════════════════════════════════════
+   PRODUCT DETAIL MODAL
+══════════════════════════════════════════ */
+.prod-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:250;align-items:center;justify-content:center;backdrop-filter:blur(10px);padding:1rem;}
+.prod-modal-overlay.open{display:flex;}
+.prod-modal{background:var(--surface);border:1px solid rgba(240,184,190,0.15);border-radius:24px;width:90%;max-width:720px;max-height:90vh;overflow-y:auto;position:relative;animation:fadeUp .3s ease;box-shadow:0 40px 100px rgba(0,0,0,0.7);}
+.prod-modal-img{width:100%;height:300px;object-fit:cover;border-radius:24px 24px 0 0;}
+.prod-modal-img-ph{width:100%;height:260px;display:flex;align-items:center;justify-content:center;font-size:6rem;background:var(--surface2);border-radius:24px 24px 0 0;}
+.prod-modal-body{padding:2rem;}
+.prod-modal-close{position:absolute;top:1rem;right:1rem;background:rgba(0,0,0,0.6);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1.1rem;z-index:10;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.prod-modal-close:hover{background:rgba(0,0,0,0.9);}
+.prod-modal-title{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;margin-bottom:.3rem;}
+.prod-modal-cat{color:var(--text-muted);font-size:.83rem;margin-bottom:1rem;font-family:'DM Sans',sans-serif;}
+.prod-modal-price{font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--rose);margin-bottom:1.2rem;}
+.size-selector{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem;}
+.size-btn{width:42px;height:42px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;}
+.size-btn.active,.size-btn:hover{background:var(--rose);color:#0a0a0c;border-color:var(--rose);}
+.prod-modal-desc{color:var(--text-muted);font-size:.86rem;line-height:1.8;margin-bottom:1.5rem;font-family:'DM Sans',sans-serif;}
+.prod-modal-actions{display:flex;gap:1rem;}
+.prod-modal-actions .btn{flex:1;justify-content:center;}
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--surface);border:1px solid rgba(240,184,190,0.25);border-radius:12px;padding:.9rem 1.4rem;font-size:.86rem;font-weight:500;box-shadow:0 16px 48px rgba(0,0,0,0.5);z-index:999;transform:translateY(100px);opacity:0;transition:all .35s cubic-bezier(.4,0,.2,1);max-width:320px;font-family:'DM Sans',sans-serif;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* ══════════════════════════════════════════
+   FOOTER
+══════════════════════════════════════════ */
+footer{background:var(--surface);border-top:1px solid var(--border);padding:4rem 8% 2rem;}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:3rem;margin-bottom:3rem;}
+.footer-brand .logo{font-size:1.6rem;margin-bottom:1rem;display:block;}
+.footer-brand p{font-size:.81rem;color:var(--text-muted);line-height:1.75;max-width:260px;font-family:'DM Sans',sans-serif;}
+.footer-col h4{font-size:.73rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);margin-bottom:1rem;font-weight:700;font-family:'DM Sans',sans-serif;}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:.6rem;}
+.footer-col ul li a{color:var(--text-muted);text-decoration:none;font-size:.81rem;transition:color .2s;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.footer-col ul li a:hover{color:var(--rose);}
+.footer-bottom{border-top:1px solid var(--border);padding-top:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;}
+.footer-bottom p{font-size:.76rem;color:var(--text-dim);font-family:'DM Sans',sans-serif;}
+.social-links{display:flex;gap:.8rem;}
+.social-link{width:34px;height:34px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;cursor:pointer;transition:all .2s;}
+.social-link:hover{border-color:var(--rose);background:var(--rose-dim);}
+
+/* ══════════════════════════════════════════
+   ANIMATIONS
+══════════════════════════════════════════ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════ */
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;padding:5rem 6% 3rem;text-align:center;}
+  .hero-right{display:none;}
+  .hero-sub{max-width:100%;margin:0 auto 2rem;}
+  .hero-ctas{justify-content:center;}
+  .hero-tags{justify-content:center;}
+  .hero-stats{justify-content:center;}
+  .services-grid{grid-template-columns:1fr;}
+  .tailor-grid{grid-template-columns:1fr;}
+  .donate-grid{grid-template-columns:1fr;}
+  .footer-grid{grid-template-columns:1fr 1fr;}
+  .cart-sidebar{width:100%;}
+  .ceiling-lights{display:none;}
+  .ac-unit{display:none;}
+}
+@media(max-width:600px){
+  .nav-links{display:none;}
+  section{padding:3rem 5%;}
+  .products-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+   REALISTIC SHOP BACKGROUND
+══════════════════════════════════════════ -->
+<div class="shop-bg"></div>
+
+<!-- ══════════════════════════════════════════
+   CEILING LIGHTS
+══════════════════════════════════════════ -->
+<div class="ceiling-lights">
+  <!-- Light 1 -->
+  <div class="light-rig">
+    <div class="light-wire"></div>
+    <div class="light-body">
+      <div class="light-bulb"></div>
+    </div>
+    <div class="light-cone"></div>
+    <div class="light-cone2"></div>
+  </div>
+  <!-- Light 2 -->
+  <div class="light-rig" style="margin-top:20px;">
+    <div class="light-wire" style="height:50px;"></div>
+    <div class="light-body">
+      <div class="light-bulb" style="animation-delay:-2s;"></div>
+    </div>
+    <div class="light-cone" style="animation-delay:-2s;"></div>
+    <div class="light-cone2" style="animation-delay:-2s;"></div>
+  </div>
+  <!-- Light 3 -->
+  <div class="light-rig">
+    <div class="light-wire" style="height:35px;"></div>
+    <div class="light-body">
+      <div class="light-bulb" style="animation-delay:-4s;"></div>
+    </div>
+    <div class="light-cone" style="animation-delay:-4s;"></div>
+    <div class="light-cone2" style="animation-delay:-4s;"></div>
+  </div>
+  <!-- Light 4 -->
+  <div class="light-rig" style="margin-top:12px;">
+    <div class="light-wire" style="height:55px;"></div>
+    <div class="light-body">
+      <div class="light-bulb" style="animation-delay:-6s;"></div>
+    </div>
+    <div class="light-cone" style="animation-delay:-6s;"></div>
+    <div class="light-cone2" style="animation-delay:-6s;"></div>
+  </div>
+  <!-- Light 5 -->
+  <div class="light-rig">
+    <div class="light-wire"></div>
+    <div class="light-body">
+      <div class="light-bulb" style="animation-delay:-3s;"></div>
+    </div>
+    <div class="light-cone" style="animation-delay:-3s;"></div>
+    <div class="light-cone2" style="animation-delay:-3s;"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+   AC UNIT (Top Right)
+══════════════════════════════════════════ -->
+<div class="ac-unit">
+  <div style="position:relative;display:flex;align-items:center;">
+    <!-- Fan unit -->
+    <div class="ac-fan">
+      <div class="fan-blade-wrap" style="position:relative;width:28px;height:28px;">
+        <div class="fan-blade"></div>
+        <div class="fan-blade"></div>
+        <div class="fan-blade"></div>
+        <div class="fan-blade"></div>
+        <div class="fan-blade"></div>
+        <div class="fan-blade"></div>
+      </div>
+    </div>
+    <!-- Main AC body -->
+    <div class="ac-body">
+      <div class="ac-vent-line"></div>
+      <div class="ac-vent-line"></div>
+      <div class="ac-vent-line"></div>
+      <div class="ac-vent-line"></div>
+      <div class="ac-vent-line"></div>
+      <div class="ac-vent-line"></div>
+      <div class="ac-vent-line"></div>
+      <div class="ac-vent-line"></div>
+      <div class="ac-light"></div>
+    </div>
+    <div class="ac-temp">18°C</div>
+  </div>
+  <!-- Cold air particles -->
+  <div class="ac-airflow">
+    <div class="air-particle"></div>
+    <div class="air-particle"></div>
+    <div class="air-particle"></div>
+    <div class="air-particle"></div>
+    <div class="air-particle"></div>
+    <div class="air-particle"></div>
+    <div class="air-particle"></div>
+    <div class="air-particle"></div>
+  </div>
+</div>
+
+<!-- Background Canvas -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-inner">
+    <div class="logo" onclick="showPage('home')">SEW<span>LY</span></div>
+    <ul class="nav-links">
+      <li><a onclick="showPage('home')">Home</a></li>
+      <li><a onclick="showPage('shop')">Shop</a></li>
+      <li><a onclick="showPage('tailor')">Custom Stitch</a></li>
+      <li><a onclick="showPage('donate')">Donate</a></li>
+      <li><a onclick="showPage('about')">About</a></li>
+    </ul>
+    <div class="nav-actions" id="nav-actions">
+      <button class="btn btn-outline btn-sm" onclick="openModal('login')">Login</button>
+      <button class="btn btn-rose btn-sm" onclick="openModal('register')">Join Free</button>
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);position:relative;" onclick="openCart()">
+        🛍️ Cart <span class="cart-badge" id="cart-badge" style="display:none">0</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+   HOME PAGE
+══════════════════════════════════════════ -->
+<div id="page-home" class="page active">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-badge">✦ Premium Ladies Fashion Studio</div>
+      <h1>Your Style,<br/><em>Stitched</em> to<br/><span>Perfection</span></h1>
+      <p class="hero-sub">Custom tailoring, curated fashion, and conscious giving — all in one place. Because every woman deserves clothes that fit like they were made for her. <em>Because they were.</em></p>
+      <div class="hero-tags">
+        <span class="htag">✂️ Custom Stitching</span>
+        <span class="htag">👗 Ready to Wear</span>
+        <span class="htag">♻️ Cloth Donation</span>
+        <span class="htag">📐 Your Measurements</span>
+      </div>
+      <div class="hero-ctas">
+        <button class="btn btn-rose btn-lg" onclick="showPage('tailor')">✂️ Get Custom Stitched</button>
+        <button class="btn btn-outline btn-lg" onclick="showPage('shop')">👗 Shop Collection</button>
+      </div>
+      <div class="hero-stats">
+        <div class="hstat"><div class="hstat-num">12K+</div><div class="hstat-label">Happy Clients</div></div>
+        <div class="hstat"><div class="hstat-num">4.9★</div><div class="hstat-label">Avg Rating</div></div>
+        <div class="hstat"><div class="hstat-num">2T+</div><div class="hstat-label">Cloth Donated</div></div>
+        <div class="hstat"><div class="hstat-num">48hr</div><div class="hstat-label">Delivery</div></div>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <div class="dress-scene">
+        <div class="dress-glow"></div>
+        <svg class="dress-svg" width="220" height="460" viewBox="0 0 220 460" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="96" y="420" width="28" height="35" rx="4" fill="#2a2a2e"/>
+          <rect x="70" y="448" width="80" height="10" rx="5" fill="#2a2a2e"/>
+          <rect x="107" y="340" width="6" height="85" rx="3" fill="#3a3a40"/>
+          <path d="M110 60 C140 60 158 80 162 110 L170 180 C174 210 172 240 165 270 L158 310 C155 335 152 340 110 340 C68 340 65 335 62 310 L55 270 C48 240 46 210 50 180 L58 110 C62 80 80 60 110 60Z" fill="#1e1e21" stroke="rgba(240,184,190,0.25)" stroke-width="1.5"/>
+          <path d="M62 280 L50 340 L40 420 L180 420 L170 340 L158 280Z" fill="url(#dressGrad)" opacity="0.85"/>
+          <path d="M55 220 C70 215 150 215 165 220" stroke="rgba(240,184,190,0.2)" stroke-width="1"/>
+          <path d="M53 240 C68 235 152 235 167 240" stroke="rgba(240,184,190,0.2)" stroke-width="1"/>
+          <ellipse cx="110" cy="58" rx="18" ry="10" fill="#2a2a2e"/>
+          <ellipse cx="67" cy="120" rx="14" ry="8" fill="#232328" transform="rotate(-15 67 120)"/>
+          <ellipse cx="153" cy="120" rx="14" ry="8" fill="#232328" transform="rotate(15 153 120)"/>
+          <path d="M80 140 Q110 155 140 140" stroke="rgba(240,184,190,0.3)" stroke-width="1.5" fill="none"/>
+          <path d="M90 180 Q110 185 130 180" stroke="rgba(224,188,122,0.3)" stroke-width="1" fill="none" stroke-dasharray="4,3"/>
+          <path d="M85 195 Q110 202 135 195" stroke="rgba(224,188,122,0.2)" stroke-width="1" fill="none" stroke-dasharray="4,3"/>
+          <defs>
+            <linearGradient id="dressGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#f0b8be" stop-opacity="0.4"/>
+              <stop offset="50%" stop-color="#d08088" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.15"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="swatch sw1"></div>
+        <div class="swatch sw2"></div>
+        <div class="swatch sw3"></div>
+        <div class="swatch sw4"></div>
+        <div class="swatch sw5"></div>
+        <div class="needle"></div>
+        <div class="thread"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SERVICES -->
+  <section>
+    <div class="section-tag">What We Do</div>
+    <h2 class="section-title">One Studio,<br/>All Your Fashion Needs</h2>
+    <div class="services-grid">
+      <div class="service-card" onclick="showPage('tailor')">
+        <div class="sc-icon">✂️</div>
+        <div class="sc-title">Custom Stitching</div>
+        <div class="sc-desc">Give us your fabric, your measurements, your dream — and we'll stitch it into reality. Blouses, salwar suits, gowns, and more.</div>
+        <div class="sc-tag">Starting ₹299</div>
+      </div>
+      <div class="service-card" onclick="showPage('tailor')">
+        <div class="sc-icon">📐</div>
+        <div class="sc-title">Design Your Dress</div>
+        <div class="sc-desc">Choose a design from our catalogue, give your exact measurements, and we'll craft a perfect fit — delivered to your door.</div>
+        <div class="sc-tag">Starting ₹799</div>
+      </div>
+      <div class="service-card" onclick="showPage('shop')">
+        <div class="sc-icon">👗</div>
+        <div class="sc-title">Ready to Wear</div>
+        <div class="sc-desc">Our curated collection of ethnic wear, western fusion, and occasion dresses — handpicked for the modern Indian woman.</div>
+        <div class="sc-tag">New Arrivals</div>
+      </div>
+      <div class="service-card" onclick="showPage('donate')">
+        <div class="sc-icon">♻️</div>
+        <div class="sc-title">Donate Clothes</div>
+        <div class="sc-desc">4 million tonnes of textile waste every year. Be part of the solution — donate your old clothes and we'll make sure they reach someone who needs them.</div>
+        <div class="sc-tag">Make a Difference</div>
+      </div>
+      <div class="service-card">
+        <div class="sc-icon">🪡</div>
+        <div class="sc-title">Alterations & Repairs</div>
+        <div class="sc-desc">Your favourite outfit feeling a little off? We fix, alter, and restore — because great clothes deserve a second life.</div>
+        <div class="sc-tag">Starting ₹99</div>
+      </div>
+      <div class="service-card">
+        <div class="sc-icon">💍</div>
+        <div class="sc-title">Bridal & Wedding</div>
+        <div class="sc-desc">Your big day deserves perfection. Custom bridal lehengas, gowns, and bridesmaid sets crafted with love and precision.</div>
+        <div class="sc-tag">Book Consultation</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section style="background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+    <div class="section-tag">Simple Process</div>
+    <h2 class="section-title">How SEWLY Works</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;margin-top:2.5rem;">
+      <div style="text-align:center;padding:1.5rem;">
+        <div style="font-size:2.5rem;margin-bottom:1rem;">📏</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:600;margin-bottom:.5rem;">Share Measurements</div>
+        <div style="font-size:.78rem;color:var(--text-muted);line-height:1.65;font-family:'DM Sans',sans-serif;">Tell us your exact size — bust, waist, hips, length. We guide you step by step.</div>
+      </div>
+      <div style="text-align:center;padding:1.5rem;">
+        <div style="font-size:2.5rem;margin-bottom:1rem;">🎨</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:600;margin-bottom:.5rem;">Pick Design & Fabric</div>
+        <div style="font-size:.78rem;color:var(--text-muted);line-height:1.65;font-family:'DM Sans',sans-serif;">Browse hundreds of designs and fabric swatches — or bring your own vision.</div>
+      </div>
+      <div style="text-align:center;padding:1.5rem;">
+        <div style="font-size:2.5rem;margin-bottom:1rem;">✂️</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:600;margin-bottom:.5rem;">We Craft It</div>
+        <div style="font-size:.78rem;color:var(--text-muted);line-height:1.65;font-family:'DM Sans',sans-serif;">Our skilled tailors stitch every piece with precision and care within 48–72 hours.</div>
+      </div>
+      <div style="text-align:center;padding:1.5rem;">
+        <div style="font-size:2.5rem;margin-bottom:1rem;">🚚</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:600;margin-bottom:.5rem;">Delivered to You</div>
+        <div style="font-size:.78rem;color:var(--text-muted);line-height:1.65;font-family:'DM Sans',sans-serif;">Your perfect outfit arrives at your door. Doesn't fit? Free alterations, no questions asked.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section>
+    <div class="section-tag">Love Letters</div>
+    <h2 class="section-title">What Our Clients Say</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:2.5rem;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.8rem;">
+        <div style="color:var(--gold);font-size:1rem;margin-bottom:1rem;">★★★★★</div>
+        <p style="font-family:'Playfair Display',serif;font-size:1.02rem;font-style:italic;color:var(--text);line-height:1.75;margin-bottom:1.2rem;">"The blouse they stitched fits me absolutely perfectly. I've never had anything custom made before and I'm never going back!"</p>
+        <div style="display:flex;align-items:center;gap:.8rem;">
+          <div style="width:38px;height:38px;background:var(--rose-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">👩</div>
+          <div><div style="font-weight:600;font-size:.86rem;font-family:'DM Sans',sans-serif;">Priya Sharma</div><div style="font-size:.73rem;color:var(--text-dim);font-family:'DM Sans',sans-serif;">Delhi, India</div></div>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.8rem;">
+        <div style="color:var(--gold);font-size:1rem;margin-bottom:1rem;">★★★★★</div>
+        <p style="font-family:'Playfair Display',serif;font-size:1.02rem;font-style:italic;color:var(--text);line-height:1.75;margin-bottom:1.2rem;">"I donated 3 bags of old clothes and they sent me a certificate showing exactly where they went. This is how fashion should be."</p>
+        <div style="display:flex;align-items:center;gap:.8rem;">
+          <div style="width:38px;height:38px;background:var(--gold-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">👩</div>
+          <div><div style="font-weight:600;font-size:.86rem;font-family:'DM Sans',sans-serif;">Meera Joshi</div><div style="font-size:.73rem;color:var(--text-dim);font-family:'DM Sans',sans-serif;">Mumbai, India</div></div>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.8rem;">
+        <div style="color:var(--gold);font-size:1rem;margin-bottom:1rem;">★★★★★</div>
+        <p style="font-family:'Playfair Display',serif;font-size:1.02rem;font-style:italic;color:var(--text);line-height:1.75;margin-bottom:1.2rem;">"My wedding lehenga was a dream. Every detail, every stitch — perfect. SEWLY made my day even more special."</p>
+        <div style="display:flex;align-items:center;gap:.8rem;">
+          <div style="width:38px;height:38px;background:var(--rose-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">👰</div>
+          <div><div style="font-weight:600;font-size:.86rem;font-family:'DM Sans',sans-serif;">Ananya Singh</div><div style="font-size:.73rem;color:var(--text-dim);font-family:'DM Sans',sans-serif;">Bangalore, India</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════════════════════
+   SHOP PAGE
+══════════════════════════════════════════ -->
+<div id="page-shop" class="page">
+  <section>
+    <div class="section-tag">Our Collection</div>
+    <h2 class="section-title">Shop Women's Fashion</h2>
+    <p class="section-sub">Handpicked ethnic, fusion & western wear — made with love, priced with honesty.</p>
+    <div class="shop-filters" style="margin-top:1.5rem;">
+      <button class="filter-btn active" onclick="filterShop(this,'all')">All</button>
+      <button class="filter-btn" onclick="filterShop(this,'ethnic')">Ethnic Wear</button>
+      <button class="filter-btn" onclick="filterShop(this,'western')">Western</button>
+      <button class="filter-btn" onclick="filterShop(this,'fusion')">Fusion</button>
+      <button class="filter-btn" onclick="filterShop(this,'bridal')">Bridal</button>
+      <button class="filter-btn" onclick="filterShop(this,'casual')">Casual</button>
+    </div>
+    <div class="products-grid" id="products-grid"></div>
+  </section>
+</div>
+
+<!-- ══════════════════════════════════════════
+   TAILOR PAGE
+══════════════════════════════════════════ -->
+<div id="page-tailor" class="page">
+  <section>
+    <div class="section-tag">Custom Stitching</div>
+    <h2 class="section-title">Made Just For You</h2>
+    <p class="section-sub">Every woman is different. Your clothes should be too. Fill in your measurements and we'll create something perfect.</p>
+    <div class="tailor-grid" style="margin-top:3rem;">
+      <div>
+        <div class="size-form">
+          <h3>📐 Your Custom Order</h3>
+          <div class="form-row">
+            <div class="form-group"><label>Full Name</label><input id="t-name" type="text" placeholder="Your name"/></div>
+            <div class="form-group"><label>Phone</label><input id="t-phone" type="tel" placeholder="+91 XXXXX XXXXX"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Garment Type</label>
+              <select id="t-type">
+                <option value="">Select type</option>
+                <option>Blouse</option><option>Salwar Kameez</option><option>Lehenga</option>
+                <option>Kurti</option><option>Gown / Anarkali</option><option>Saree Blouse</option>
+                <option>Western Dress</option><option>Co-ord Set</option><option>Other</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Fabric</label>
+              <select id="t-fabric">
+                <option>I'll send my fabric</option><option>Cotton</option><option>Silk</option>
+                <option>Chiffon</option><option>Georgette</option><option>Velvet</option>
+                <option>Crepe</option><option>Linen</option>
+              </select>
+            </div>
+          </div>
+          <div style="background:var(--surface2);border-radius:12px;padding:1.2rem;margin-bottom:1rem;">
+            <div style="font-size:.73rem;font-weight:600;color:var(--rose);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1rem;font-family:'DM Sans',sans-serif;">📏 Your Measurements (in inches)</div>
+            <div class="form-row">
+              <div class="form-group"><label>Bust</label><input id="m-bust" type="number" placeholder="e.g. 36"/></div>
+              <div class="form-group"><label>Waist</label><input id="m-waist" type="number" placeholder="e.g. 30"/></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Hips</label><input id="m-hips" type="number" placeholder="e.g. 38"/></div>
+              <div class="form-group"><label>Length</label><input id="m-length" type="number" placeholder="e.g. 42"/></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Shoulder</label><input id="m-shoulder" type="number" placeholder="e.g. 14"/></div>
+              <div class="form-group"><label>Sleeve Length</label><input id="m-sleeve" type="number" placeholder="e.g. 22"/></div>
+            </div>
+          </div>
+          <div class="form-group full" style="margin-bottom:1rem;">
+            <label>Special Instructions</label>
+            <textarea id="t-notes" placeholder="Any specific design, embroidery, neckline style, colour preference..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Reference Image (optional)</label>
+            <input id="t-img" type="file" accept="image/*" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.65rem 1rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.85rem;width:100%;cursor:pointer;"/>
+          </div>
+          <button class="submit-btn" onclick="submitOrder()">✂️ Place Custom Order — FREE Consultation</button>
+        </div>
+      </div>
+      <div class="tailor-info">
+        <div class="tinfo-card"><div class="tinfo-icon">⏱️</div><div><div class="tinfo-title">48–72 Hour Delivery</div><div class="tinfo-desc">Most custom orders are ready within 2–3 days. Bridal & complex pieces in 7–10 days.</div></div></div>
+        <div class="tinfo-card"><div class="tinfo-icon">🔄</div><div><div class="tinfo-title">Free Alterations</div><div class="tinfo-desc">Not a perfect fit? We'll alter it for free — no questions asked, no hassle.</div></div></div>
+        <div class="tinfo-card"><div class="tinfo-icon">💸</div><div><div class="tinfo-title">Transparent Pricing</div><div class="tinfo-desc">Blouses from ₹299. Suits from ₹799. Gowns from ₹1499. No hidden charges.</div></div></div>
+        <div class="tinfo-card"><div class="tinfo-icon">👩‍💼</div><div><div class="tinfo-title">Expert Tailors</div><div class="tinfo-desc">Our team has 15+ years of combined experience in ladies fashion tailoring across India.</div></div></div>
+        <div class="measure-guide">
+          <h4>📐 Measurement Guide</h4>
+          <div class="measure-item"><span>Bust</span><span>Fullest part of chest</span></div>
+          <div class="measure-item"><span>Waist</span><span>Narrowest part of torso</span></div>
+          <div class="measure-item"><span>Hips</span><span>Fullest part of hips</span></div>
+          <div class="measure-item"><span>Length</span><span>Shoulder to desired end</span></div>
+          <div class="measure-item"><span>Shoulder</span><span>Seam to seam across back</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════════════════════
+   DONATE PAGE
+══════════════════════════════════════════ -->
+<div id="page-donate" class="page">
+  <section>
+    <div class="donate-hero">
+      <div class="section-tag">Make a Difference</div>
+      <h2>Fashion Should Never<br/>Become Waste</h2>
+      <p>India generates over 4 million tonnes of textile waste annually. Your old clothes deserve better — and so does our planet. Donate through SEWLY and we ensure your clothes reach people who truly need them.</p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-gold btn-lg" onclick="document.getElementById('donate-form-section').scrollIntoView({behavior:'smooth'})">♻️ Donate My Clothes</button>
+        <button class="btn btn-outline btn-lg">Learn More</button>
+      </div>
+      <div class="waste-stats">
+        <div class="wstat"><div class="wstat-num">4M+</div><div class="wstat-label">Tonnes Textile Waste/Year</div></div>
+        <div class="wstat"><div class="wstat-num">2T+</div><div class="wstat-label">Clothes We've Collected</div></div>
+        <div class="wstat"><div class="wstat-num">8K+</div><div class="wstat-label">Families Helped</div></div>
+        <div class="wstat"><div class="wstat-num">94%</div><div class="wstat-label">Items Reused/Recycled</div></div>
+      </div>
+    </div>
+    <div class="donate-grid" id="donate-form-section">
+      <div>
+        <div class="donate-form">
+          <h3>🧺 Schedule a Pickup</h3>
+          <div style="font-size:.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.8rem;font-family:'DM Sans',sans-serif;">What are you donating?</div>
+          <div class="cloth-type-grid" id="cloth-types">
+            <div class="cloth-type-btn selected" onclick="toggleClothType(this)">👗 Sarees</div>
+            <div class="cloth-type-btn" onclick="toggleClothType(this)">👕 Tops</div>
+            <div class="cloth-type-btn" onclick="toggleClothType(this)">👖 Bottoms</div>
+            <div class="cloth-type-btn" onclick="toggleClothType(this)">🥻 Ethnic Wear</div>
+            <div class="cloth-type-btn" onclick="toggleClothType(this)">🧥 Jackets</div>
+            <div class="cloth-type-btn" onclick="toggleClothType(this)">👶 Kids Wear</div>
+          </div>
+          <div class="form-row" style="margin-top:1rem;">
+            <div class="form-group"><label>Your Name</label><input id="d-name" type="text" placeholder="Full name"/></div>
+            <div class="form-group"><label>Phone</label><input id="d-phone" type="tel" placeholder="+91 XXXXX"/></div>
+          </div>
+          <div class="form-group" style="margin-bottom:.8rem;"><label>Pickup Address</label><textarea id="d-address" placeholder="Full address for pickup..." style="min-height:70px;"></textarea></div>
+          <div class="form-row">
+            <div class="form-group"><label>Preferred Date</label><input id="d-date" type="date"/></div>
+            <div class="form-group"><label>Approx. Bags</label><select id="d-qty"><option>1 bag</option><option>2-3 bags</option><option>4-5 bags</option><option>5+ bags</option></select></div>
+          </div>
+          <div class="form-group" style="margin-top:.5rem;"><label>Condition</label>
+            <select id="d-condition">
+              <option>Good — Wearable</option>
+              <option>Fair — Needs minor repair</option>
+              <option>Old — For recycling only</option>
+            </select>
+          </div>
+          <button class="submit-btn" style="background:linear-gradient(135deg,var(--gold),#a8804a);" onclick="submitDonation()">♻️ Schedule Free Pickup</button>
+        </div>
+        <div class="donate-progress" style="margin-top:1.5rem;">
+          <div class="dp-title">🎯 This Month's Collection Goal</div>
+          <div class="dp-bar-wrap"><div class="dp-bar" style="width:72%"></div></div>
+          <div class="dp-label"><span>72% complete</span><span>Goal: 500kg</span></div>
+        </div>
+      </div>
+      <div class="impact-cards">
+        <div class="impact-card"><div class="ic-icon">🏠</div><div><div class="ic-title">Goes to Shelters</div><div class="ic-desc">Wearable clothes go directly to women's shelters and NGO partners across 12 cities in India.</div></div></div>
+        <div class="impact-card"><div class="ic-icon">♻️</div><div><div class="ic-title">Recycled into New Fabric</div><div class="ic-desc">Old and damaged clothes are upcycled into new fabric, rugs, and insulation material — keeping them out of landfills.</div></div></div>
+        <div class="impact-card"><div class="ic-icon">🌍</div><div><div class="ic-title">Carbon Impact Tracked</div><div class="ic-desc">Every donation is logged. We calculate and share the exact CO₂ you helped save with a personalised certificate.</div></div></div>
+        <div class="impact-card"><div class="ic-icon">💰</div><div><div class="ic-title">Free Pickup, Always</div><div class="ic-desc">We come to you. No charges, no minimum amount — just a free pickup from your home, anywhere in our service cities.</div></div></div>
+        <div class="impact-card"><div class="ic-icon">🪙</div><div><div class="ic-title">Earn SEWLY Credits</div><div class="ic-desc">For every donation, earn SEWLY credits redeemable on custom stitching or shop purchases. Giving back never felt so good!</div></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════════════════════
+   ABOUT PAGE
+══════════════════════════════════════════ -->
+<div id="page-about" class="page">
+  <section>
+    <div style="max-width:700px;margin:0 auto;text-align:center;margin-bottom:4rem;">
+      <div class="section-tag">Our Story</div>
+      <h2 class="section-title">Stitching Stories,<br/>One Thread at a Time</h2>
+      <p style="color:var(--text-muted);line-height:1.85;font-size:.98rem;font-family:'DM Sans',sans-serif;">SEWLY was born from a simple belief — that every woman deserves clothes that fit her perfectly, not the other way around. We also believe fashion should be kinder to our planet.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;">
+      <div>
+        <h3 style="font-family:'Playfair Display',serif;font-size:2rem;margin-bottom:1.2rem;">Why SEWLY?</h3>
+        <p style="color:var(--text-muted);line-height:1.85;margin-bottom:1rem;font-family:'DM Sans',sans-serif;">In a world of fast fashion, we chose slow, intentional clothing. Every piece we create is made to last, made to fit, and made to matter.</p>
+        <p style="color:var(--text-muted);line-height:1.85;margin-bottom:2rem;font-family:'DM Sans',sans-serif;">From our tailoring studio to our donation drive, everything we do is about making fashion more personal, more sustainable, and more joyful.</p>
+        <div style="display:flex;flex-direction:column;gap:1rem;">
+          <div style="display:flex;gap:1rem;align-items:center;"><span style="color:var(--rose);font-size:1.2rem;">✦</span><span style="font-size:.88rem;color:var(--text-muted);font-family:'DM Sans',sans-serif;">Founded in 2021 in New Delhi, India</span></div>
+          <div style="display:flex;gap:1rem;align-items:center;"><span style="color:var(--rose);font-size:1.2rem;">✦</span><span style="font-size:.88rem;color:var(--text-muted);font-family:'DM Sans',sans-serif;">Team of 40+ skilled tailors across India</span></div>
+          <div style="display:flex;gap:1rem;align-items:center;"><span style="color:var(--rose);font-size:1.2rem;">✦</span><span style="font-size:.88rem;color:var(--text-muted);font-family:'DM Sans',sans-serif;">Partnered with 18 NGOs for cloth donation</span></div>
+          <div style="display:flex;gap:1rem;align-items:center;"><span style="color:var(--rose);font-size:1.2rem;">✦</span><span style="font-size:.88rem;color:var(--text-muted);font-family:'DM Sans',sans-serif;">12,000+ happy customers, 4.9★ rating</span></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;text-align:center;">
+          <div style="font-size:3rem;margin-bottom:.5rem;">🧵</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--rose);">40+</div>
+          <div style="font-size:.76rem;color:var(--text-muted);font-family:'DM Sans',sans-serif;">Expert Tailors</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;text-align:center;">
+          <div style="font-size:3rem;margin-bottom:.5rem;">🌆</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--rose);">15</div>
+          <div style="font-size:.76rem;color:var(--text-muted);font-family:'DM Sans',sans-serif;">Cities Served</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;text-align:center;">
+          <div style="font-size:3rem;margin-bottom:.5rem;">♻️</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--gold);">2T+</div>
+          <div style="font-size:.76rem;color:var(--text-muted);font-family:'DM Sans',sans-serif;">Clothes Donated</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;text-align:center;">
+          <div style="font-size:3rem;margin-bottom:.5rem;">⭐</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--gold);">4.9</div>
+          <div style="font-size:.76rem;color:var(--text-muted);font-family:'DM Sans',sans-serif;">Avg Rating</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════════════════════
+   FOOTER
+══════════════════════════════════════════ -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <span class="logo">SEW<span>LY</span></span>
+      <p>Custom tailoring, curated fashion, and conscious giving — all in one place. Making Indian women look and feel their absolute best.</p>
+      <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap;">
+        <span style="padding:.2rem .7rem;background:var(--rose-dim);border-radius:100px;font-size:.66rem;color:var(--rose);font-family:'DM Sans',sans-serif;">✂️ Custom Stitch</span>
+        <span style="padding:.2rem .7rem;background:var(--gold-dim);border-radius:100px;font-size:.66rem;color:var(--gold);font-family:'DM Sans',sans-serif;">♻️ Eco-Friendly</span>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Services</h4>
+      <ul>
+        <li><a onclick="showPage('tailor')">Custom Stitching</a></li>
+        <li><a onclick="showPage('tailor')">Design Your Dress</a></li>
+        <li><a onclick="showPage('shop')">Shop Collection</a></li>
+        <li><a>Alterations</a></li>
+        <li><a>Bridal Wear</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <ul>
+        <li><a onclick="showPage('about')">About Us</a></li>
+        <li><a onclick="showPage('donate')">Donate Clothes</a></li>
+        <li><a>Our Tailors</a></li>
+        <li><a>Careers</a></li>
+        <li><a>Press</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <ul>
+        <li><a>Size Guide</a></li>
+        <li><a>Track Order</a></li>
+        <li><a>Returns Policy</a></li>
+        <li><a>Contact Us</a></li>
+        <li><a>FAQ</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2025 SEWLY. Made with ♥ in India. All rights reserved.</p>
+    <div class="social-links">
+      <div class="social-link">📘</div>
+      <div class="social-link">📷</div>
+      <div class="social-link">🐦</div>
+      <div class="social-link">▶️</div>
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-login">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('login')">✕</button>
+    <h2>Welcome Back 👗</h2>
+    <p>Login to your SEWLY account</p>
+    <div class="mform">
+      <input id="l-email" type="email" placeholder="Email address"/>
+      <input id="l-pass" type="password" placeholder="Password"/>
+      <button class="mform-btn" onclick="doLogin()">Login to SEWLY</button>
+      <div class="divider">or</div>
+      <button class="btn btn-outline" style="width:100%;justify-content:center;" onclick="showToast('🔄 Google login coming soon!')">🔵 Continue with Google</button>
+    </div>
+    <div class="mswitch">No account? <a onclick="closeModal('login');openModal('register')">Join Free</a></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-register">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('register')">✕</button>
+    <h2>Join SEWLY ✦</h2>
+    <p>Create your free account and start your style journey</p>
+    <div class="mform">
+      <input id="r-name" type="text" placeholder="Full name"/>
+      <input id="r-email" type="email" placeholder="Email address"/>
+      <input id="r-phone" type="tel" placeholder="Phone number (+91)"/>
+      <input id="r-pass" type="password" placeholder="Create password"/>
+      <button class="mform-btn" onclick="doRegister()">Create Free Account</button>
+      <div class="divider">or</div>
+      <button class="btn btn-outline" style="width:100%;justify-content:center;" onclick="showToast('🔄 Google signup coming soon!')">🔵 Continue with Google</button>
+    </div>
+    <div class="mswitch">Already a member? <a onclick="closeModal('register');openModal('login')">Login</a></div>
+  </div>
+</div>
+
+<!-- Product Detail Modal -->
+<div class="prod-modal-overlay" id="prod-modal">
+  <div class="prod-modal">
+    <button class="prod-modal-close" onclick="closeProdModal()">✕</button>
+    <div id="pm-img-wrap"></div>
+    <div class="prod-modal-body">
+      <div class="prod-modal-title" id="pm-title"></div>
+      <div class="prod-modal-cat" id="pm-cat"></div>
+      <div class="prod-modal-price" id="pm-price"></div>
+      <div style="font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.7rem;font-family:'DM Sans',sans-serif;">Select Size</div>
+      <div class="size-selector" id="pm-sizes"></div>
+      <div style="font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;font-family:'DM Sans',sans-serif;">Description</div>
+      <div class="prod-modal-desc" id="pm-desc"></div>
+      <div class="prod-modal-actions">
+        <button class="btn btn-outline btn-lg" onclick="addToWishlist()">🤍 Wishlist</button>
+        <button class="btn btn-rose btn-lg" id="pm-cart-btn">🛍️ Add to Cart</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Cart Sidebar -->
+<div class="cart-overlay" id="cart-overlay" onclick="closeCart()"></div>
+<div class="cart-sidebar" id="cart-sidebar">
+  <div class="cart-header">
+    <h3>Your Cart 🛍️</h3>
+    <button class="cart-close" onclick="closeCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cart-items-list"></div>
+  <div class="cart-footer">
+    <div class="cart-total"><span>Total</span><span id="cart-total-price">₹0</span></div>
+    <button class="submit-btn" onclick="checkout()">Proceed to Checkout →</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════
+   SUPABASE INIT
+══════════════════════════════════════════ */
+const SUPABASE_URL = 'https://fgluwsyimnvxqslyohpz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_npWm2Kok9xQLZrmcNlaBxA_-udW1Utj';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ══════════════════════════════════════════
+   BACKGROUND CANVAS — Floating threads/fabric
+══════════════════════════════════════════ */
+(function(){
+  const c = document.getElementById('bg-canvas');
+  const ctx = c.getContext('2d');
+  let W, H, particles = [];
+
+  function resize(){ W = c.width = innerWidth; H = c.height = innerHeight; }
+
+  function init(){
+    particles = [];
+    for(let i = 0; i < 50; i++){
+      particles.push({
+        x: Math.random()*W, y: Math.random()*H,
+        vx: (Math.random()-.5)*.25, vy: (Math.random()-.5)*.25,
+        len: Math.random()*55+15, angle: Math.random()*Math.PI*2,
+        color: Math.random()<.5 ? 'rgba(240,184,190,' : 'rgba(224,188,122,',
+        alpha: Math.random()*.12+.02,
+        rot: (Math.random()-.5)*.018
+      });
+    }
+    for(let i = 0; i < 10; i++){
+      particles.push({
+        x: Math.random()*W, y: Math.random()*H,
+        vx: (Math.random()-.5)*.12, vy: (Math.random()-.5)*.12,
+        size: Math.random()*35+12,
+        color: ['rgba(240,184,190,','rgba(224,188,122,','rgba(139,92,246,','rgba(16,185,129,'][Math.floor(Math.random()*4)],
+        alpha: Math.random()*.05+.015,
+        rot: Math.random()*Math.PI*2,
+        rotV: (Math.random()-.5)*.004,
+        isRect: true
+      });
+    }
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{
+      ctx.save();
+      if(p.isRect){
+        ctx.translate(p.x,p.y);ctx.rotate(p.rot);
+        ctx.fillStyle = p.color+p.alpha+')';
+        ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+        p.rot+=p.rotV; p.x+=p.vx; p.y+=p.vy;
+      } else {
+        ctx.strokeStyle = p.color+p.alpha+')';
+        ctx.lineWidth = 1.5;
+        ctx.translate(p.x,p.y);ctx.rotate(p.angle);
+        ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(p.len,0);ctx.stroke();
+        p.angle+=p.rot; p.x+=p.vx; p.y+=p.vy;
+      }
+      if(p.x<-100)p.x=W+100; if(p.x>W+100)p.x=-100;
+      if(p.y<-100)p.y=H+100; if(p.y>H+100)p.y=-100;
+      ctx.restore();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize();init();draw();
+  window.addEventListener('resize',()=>{resize();init();});
+})();
+
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+let user = JSON.parse(localStorage.getItem('sewly_user')||'null');
+let cart = [];
+let products = [];
+
+let currentProduct = null;
+let selectedSize = '';
+
+/* ══════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════ */
+function showPage(n){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+n).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n==='shop') renderShop(products);
+  updateNav();
+}
+
+/* ══════════════════════════════════════════
+   SUPABASE — LOAD PRODUCTS
+══════════════════════════════════════════ */
+async function loadProducts() {
+  const { data, error } = await sb.from('sewly_products').select('*').eq('in_stock', true).order('id');
+  if (error) {
+    console.error('Products load error:', error);
+    products = [
+      {id:1,name:'Zara Ethnic Kurta',category:'ethnic',price:1299,emoji:'👗',description:'Elegant cotton kurta with floral embroidery.',badge:'Bestseller',sizes:['XS','S','M','L','XL','XXL']},
+      {id:2,name:'Royal Silk Saree',category:'ethnic',price:3499,emoji:'🥻',description:'Pure Banarasi silk saree with golden border.',badge:'Premium',sizes:['Free Size']},
+      {id:3,name:'Fusion Co-ord Set',category:'fusion',price:1899,emoji:'👚',description:'Modern crop top and palazzo with block prints.',badge:'New',sizes:['XS','S','M','L','XL']},
+      {id:4,name:'Bridal Lehenga',category:'bridal',price:12999,emoji:'👰',description:'Handcrafted lehenga with zari and mirror work.',badge:'Exclusive',sizes:['Custom']},
+      {id:5,name:'Floral Maxi Dress',category:'western',price:1599,emoji:'🌸',description:'Flowy chiffon maxi dress with floral print.',badge:'Trending',sizes:['S','M','L','XL']},
+      {id:6,name:'Casual Kurti Set',category:'casual',price:899,emoji:'👕',description:'Comfortable daily wear kurti with palazzo.',badge:'',sizes:['S','M','L','XL','XXL']},
+      {id:7,name:'Embroidered Anarkali',category:'ethnic',price:2799,emoji:'👗',description:'Floor-length Anarkali with thread embroidery.',badge:'Popular',sizes:['XS','S','M','L','XL']},
+      {id:8,name:'Western Blazer Dress',category:'western',price:2199,emoji:'🧥',description:'Structured blazer dress for the modern woman.',badge:'New',sizes:['XS','S','M','L']},
+      {id:9,name:'Bandhani Dupatta',category:'fusion',price:699,emoji:'🧣',description:'Traditional Rajasthani tie-dye dupatta.',badge:'',sizes:['Free Size']},
+      {id:10,name:'Georgette Salwar Set',category:'ethnic',price:1499,emoji:'👗',description:'Lightweight georgette salwar kameez with dupatta.',badge:'',sizes:['S','M','L','XL','XXL']},
+    ];
+  } else {
+    products = data;
+  }
+  renderShop(products);
+}
+
+/* ══════════════════════════════════════════
+   SUPABASE — LOAD CART
+══════════════════════════════════════════ */
+async function loadCart() {
+  if (!user) { cart = []; updateCartBadge(); return; }
+  const { data, error } = await sb.from('sewly_cart').select('*, sewly_products(*)').eq('user_email', user.email);
+  if (!error && data) {
+    cart = data.map(item => ({
+      ...item.sewly_products,
+      cartId: item.id,
+      size: item.size,
+      qty: item.quantity
+    }));
+  }
+  updateCartBadge();
+}
+
+/* ══════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════ */
+function showPage(n){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+n).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n==='shop') loadProducts();
+  updateNav();
+}
+
+/* ══════════════════════════════════════════
+   AUTH — Supabase
+══════════════════════════════════════════ */
+function updateNav(){
+  const el = document.getElementById('nav-actions');
+  if(user){
+    const name = user.name.split(' ')[0];
+    el.innerHTML = `
+      <span style="color:var(--text-muted);font-size:.8rem;font-family:'DM Sans',sans-serif;">👤 ${name}</span>
+      <button class="btn btn-outline btn-sm" onclick="doLogout()">Logout</button>
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);position:relative;" onclick="openCart()">
+        🛍️ Cart <span class="cart-badge" id="cart-badge" style="${cart.length?'':'display:none'}">${cart.length}</span>
+      </button>`;
+  } else {
+    el.innerHTML = `
+      <button class="btn btn-outline btn-sm" onclick="openModal('login')">Login</button>
+      <button class="btn btn-rose btn-sm" onclick="openModal('register')">Join Free</button>
+      <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);position:relative;" onclick="openCart()">
+        🛍️ Cart <span class="cart-badge" id="cart-badge" style="${cart.length?'':'display:none'}">${cart.length}</span>
+      </button>`;
+  }
+}
+
+async function doLogin(){
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  if(!email||!pass) return showToast('⚠️ Please fill all fields');
+  showToast('🔄 Logging in...');
+  const { data, error } = await sb.from('sewly_users').select('*').eq('email', email).eq('pass', pass).single();
+  if(error || !data) return showToast('❌ Invalid email or password');
+  user = data;
+  localStorage.setItem('sewly_user', JSON.stringify(user));
+  closeModal('login');
+  await loadCart();
+  updateNav();
+  showToast('✅ Welcome back, '+user.name.split(' ')[0]+'! 👗');
+}
+
+async function doRegister(){
+  const name = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const phone = document.getElementById('r-phone').value.trim();
+  const pass = document.getElementById('r-pass').value;
+  if(!name||!email||!pass) return showToast('⚠️ Please fill all required fields');
+  showToast('🔄 Creating account...');
+  const { data: existing } = await sb.from('sewly_users').select('id').eq('email', email).maybeSingle();
+  if(existing) return showToast('❌ Email already registered');
+  const { data, error } = await sb.from('sewly_users').insert([{ name, email, phone, pass }]).select().single();
+  if(error) return showToast('❌ Registration failed: '+error.message);
+  user = data;
+  localStorage.setItem('sewly_user', JSON.stringify(user));
+  closeModal('register');
+  updateNav();
+  showToast('🎉 Welcome to SEWLY, '+name.split(' ')[0]+'! ✦');
+}
+
+async function doLogout(){
+  user = null; cart = [];
+  localStorage.removeItem('sewly_user');
+  updateNav(); updateCartBadge();
+  showToast('👋 See you soon!');
+  showPage('home');
+}
+
+/* ══════════════════════════════════════════
+   SHOP
+══════════════════════════════════════════ */
+function renderShop(data){
+  const grid = document.getElementById('products-grid');
+  grid.innerHTML = data.length ? data.map(p=>`
+    <div class="product-card" onclick="openProdModal(${p.id})">
+      <div class="product-img">
+        <div style="font-size:4rem;">${p.emoji}</div>
+        ${p.badge?`<div class="product-badge">${p.badge}</div>`:''}
+        <button class="product-wish" onclick="event.stopPropagation();this.textContent=this.textContent==='🤍'?'❤️':'🤍'">🤍</button>
+      </div>
+      <div class="product-body">
+        <div class="product-name">${p.name}</div>
+        <div class="product-cat">${p.category.charAt(0).toUpperCase()+p.category.slice(1)}</div>
+        <div class="product-footer">
+          <div class="product-price">₹${p.price.toLocaleString('en-IN')}</div>
+          <button class="add-cart-btn" onclick="event.stopPropagation();quickAddCart(${p.id})">+ Add</button>
+        </div>
+      </div>
+    </div>`).join('') : '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-muted);font-family:\'DM Sans\',sans-serif;">No products found</div>';
+}
+
+function filterShop(btn, cat){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = cat==='all' ? products : products.filter(p=>p.category===cat);
+  renderShop(filtered);
+}
+
+/* ══════════════════════════════════════════
+   PRODUCT MODAL
+══════════════════════════════════════════ */
+function openProdModal(id){
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  currentProduct = p; selectedSize = p.sizes[0];
+  document.getElementById('pm-img-wrap').innerHTML = `<div class="prod-modal-img-ph" style="font-size:7rem;">${p.emoji}</div>`;
+  document.getElementById('pm-title').textContent = p.name;
+  document.getElementById('pm-cat').textContent = p.category.charAt(0).toUpperCase()+p.category.slice(1);
+  document.getElementById('pm-price').textContent = '₹'+p.price.toLocaleString('en-IN');
+  document.getElementById('pm-sizes').innerHTML = p.sizes.map(s=>`<button class="size-btn${s===selectedSize?' active':''}" onclick="selectSize(this,'${s}')">${s}</button>`).join('');
+  document.getElementById('pm-desc').textContent = p.description;
+  document.getElementById('pm-cart-btn').onclick = ()=>addToCart(p,selectedSize);
+  document.getElementById('prod-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function selectSize(btn,size){
+  document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); selectedSize=size;
+}
+
+function closeProdModal(){
+  document.getElementById('prod-modal').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+document.getElementById('prod-modal').addEventListener('click',function(e){if(e.target===this)closeProdModal();});
+
+/* ══════════════════════════════════════════
+   CART — Supabase
+══════════════════════════════════════════ */
+async function addToCart(p, size){
+  if(!user){ closeProdModal(); return openModal('login'); }
+  const existing = cart.find(i=>i.id===p.id&&i.size===size);
+  if(existing){
+    existing.qty++;
+    await sb.from('sewly_cart').update({ quantity: existing.qty }).eq('id', existing.cartId);
+  } else {
+    const { data, error } = await sb.from('sewly_cart').upsert(
+      { user_email: user.email, product_id: p.id, size, quantity: 1 },
+      { onConflict: 'user_email,product_id,size' }
+    ).select().single();
+    if(!error && data) cart.push({...p, cartId: data.id, size, qty: 1});
+  }
+  updateCartBadge();
+  showToast('🛍️ Added to cart: '+p.name);
+  closeProdModal();
+}
+
+async function quickAddCart(id){
+  const p = products.find(x=>x.id===id);
+  if(p) await addToCart(p, p.sizes[0]);
+}
+
+function addToWishlist(){ showToast('🤍 Added to wishlist!'); }
+
+function updateCartBadge(){
+  const badge = document.getElementById('cart-badge');
+  if(badge){ badge.textContent=cart.length; badge.style.display=cart.length?'flex':'none'; }
+}
+
+function openCart(){
+  renderCart();
+  document.getElementById('cart-overlay').classList.add('open');
+  document.getElementById('cart-sidebar').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeCart(){
+  document.getElementById('cart-overlay').classList.remove('open');
+  document.getElementById('cart-sidebar').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function renderCart(){
+  const el = document.getElementById('cart-items-list');
+  if(!cart.length){ el.innerHTML=`<div class="cart-empty"><div class="cart-empty-icon">🛍️</div><div>Your cart is empty</div><div style="font-size:.78rem;color:var(--text-dim);margin-top:.5rem;">Start shopping!</div></div>`; }
+  else {
+    el.innerHTML = cart.map((item,i)=>`
+      <div class="cart-item">
+        <div class="cart-item-img">${item.emoji}</div>
+        <div style="flex:1;">
+          <div class="cart-item-name">${item.name}</div>
+          <div class="cart-item-price">₹${(item.price*item.qty).toLocaleString('en-IN')}</div>
+          <div class="cart-item-qty">
+            <button class="qty-btn" onclick="changeQty(${i},-1)">−</button>
+            <span style="font-size:.83rem;font-weight:600;">${item.qty}</span>
+            <button class="qty-btn" onclick="changeQty(${i},1)">+</button>
+            <span style="font-size:.7rem;color:var(--text-dim);">Size: ${item.size}</span>
+          </div>
+        </div>
+        <button class="cart-remove" onclick="removeFromCart(${i})">✕</button>
+      </div>`).join('');
+  }
+  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  document.getElementById('cart-total-price').textContent = '₹'+total.toLocaleString('en-IN');
+}
+
+async function changeQty(i,d){
+  cart[i].qty+=d;
+  if(cart[i].qty<=0){
+    await sb.from('sewly_cart').delete().eq('id', cart[i].cartId);
+    cart.splice(i,1);
+  } else {
+    await sb.from('sewly_cart').update({ quantity: cart[i].qty }).eq('id', cart[i].cartId);
+  }
+  updateCartBadge(); renderCart();
+}
+
+async function removeFromCart(i){
+  await sb.from('sewly_cart').delete().eq('id', cart[i].cartId);
+  cart.splice(i,1);
+  updateCartBadge(); renderCart(); showToast('🗑️ Item removed');
+}
+
+async function checkout(){
+  if(!user) { closeCart(); openModal('login'); return; }
+  if(!cart.length) return showToast('⚠️ Cart is empty!');
+  showToast('🎉 Order placed! We\'ll contact you within 2 hours.');
+  await sb.from('sewly_cart').delete().eq('user_email', user.email);
+  cart=[];
+  updateCartBadge(); renderCart(); setTimeout(closeCart,1500);
+}
+
+/* ══════════════════════════════════════════
+   CUSTOM ORDER — Supabase
+══════════════════════════════════════════ */
+async function submitOrder(){
+  if(!user) { openModal('login'); return showToast('⚠️ Please login first'); }
+  const name=document.getElementById('t-name').value.trim();
+  const type=document.getElementById('t-type').value;
+  const bust=document.getElementById('m-bust').value;
+  if(!name||!type||!bust) return showToast('⚠️ Please fill name, garment type and measurements');
+  const notes=document.getElementById('t-notes').value.trim();
+  const { error } = await sb.from('sewly_orders').insert([{
+    user_email: user.email, garment_name: name,
+    garment_type: type, bust_measurement: bust, notes
+  }]);
+  if(error){ console.error(error); return showToast('❌ Order failed. Try again.'); }
+  showToast('✅ Order placed! Our tailor will call you within 2 hours. 🧵');
+  document.getElementById('t-name').value='';
+  document.getElementById('t-type').value='';
+  document.getElementById('t-notes').value='';
+}
+
+/* ══════════════════════════════════════════
+   DONATE — Supabase
+══════════════════════════════════════════ */
+function toggleClothType(btn){ btn.classList.toggle('selected'); }
+
+async function submitDonation(){
+  const name=document.getElementById('d-name').value.trim();
+  const phone=document.getElementById('d-phone').value.trim();
+  const address=document.getElementById('d-address').value.trim();
+  const date=document.getElementById('d-date').value;
+  if(!name||!address) return showToast('⚠️ Please fill name and address');
+  const selectedTypes=[...document.querySelectorAll('.cloth-type-btn.selected')].map(b=>b.textContent.trim());
+  const { error } = await sb.from('sewly_donations').insert([{
+    name, phone, address, pickup_date: date||null, cloth_types: selectedTypes
+  }]);
+  if(error){ console.error(error); return showToast('❌ Submission failed. Try again.'); }
+  showToast('♻️ Pickup scheduled! Thank you for making a difference 🌍');
+  document.getElementById('d-name').value='';
+  document.getElementById('d-phone').value='';
+  document.getElementById('d-address').value='';
+  document.getElementById('d-date').value='';
+  const bar = document.querySelector('.dp-bar');
+  if(bar){ const cur=parseInt(bar.style.width)||72; bar.style.width=Math.min(cur+5,100)+'%'; }
+}
+
+/* ══════════════════════════════════════════
+   MODAL HELPERS
+══════════════════════════════════════════ */
+function openModal(n){ document.getElementById('modal-'+n).classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(n){ document.getElementById('modal-'+n).classList.remove('open'); document.body.style.overflow=''; }
+document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{ if(e.target===el){ el.classList.remove('open'); document.body.style.overflow=''; } }));
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+(async function init(){
+  updateNav();
+  await loadProducts();
+  if(user) await loadCart();
+  updateCartBadge();
+})()
+</script>
+</body>
+</html>
